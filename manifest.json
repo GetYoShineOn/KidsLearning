@@ -1,0 +1,16 @@
+{
+  "name": "All-Star Math Arena",
+  "short_name": "Math Arena",
+  "description": "A sports-themed learning game for pre-K and kindergarten: counting, shapes, colors, letters, patterns and more.",
+  "start_url": "./index.html",
+  "scope": "./",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#2D9CFF",
+  "theme_color": "#2D9CFF",
+  "icons": [
+    { "src": "icons/icon-192.png", "sizes": "192x192", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "icons/icon-maskable-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" }
+  ]
+}
