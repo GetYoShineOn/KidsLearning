@@ -1,7 +1,7 @@
-// Single source of truth for the brand. Research (docs/research/brand-name.md) found the working name
-// conflicts with existing products; keep it swappable here until a human clears a final name.
+// Single source of truth for the brand. "Stillwarm" was chosen after screening (docs/research/name-screening.md).
+// PENDING before public launch: USPTO trademark search, registrar/domain check, attorney review. Swappable here.
 export const BRAND = {
-  name: 'Revenue Rescue',
-  legal: 'Revenue Rescue (working name)',
-  tagline: 'Find the revenue your leads are leaving behind.',
+  name: 'Stillwarm',
+  legal: 'Stillwarm (name pending trademark clearance)',
+  tagline: 'Your missed leads are still warm.',
 };

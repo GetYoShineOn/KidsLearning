@@ -1,4 +1,6 @@
-# Revenue Rescue (working name)
+# Stillwarm
+
+Name chosen after screening (`docs/research/name-screening.md`). **Not yet cleared**: USPTO trademark search, domain check and attorney review are still required before public use.
 
 Recovers revenue from leads a local service business already paid for: missed calls first, then web-lead speed, estimate follow-up, dormant reactivation.
 Beachhead (from research): **residential HVAC**, then plumbing. First workflow: **missed-call text-back -> qualify -> book -> attribute revenue**.

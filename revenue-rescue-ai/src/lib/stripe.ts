@@ -17,7 +17,7 @@ export function checkoutParams(i: CheckoutInput): URLSearchParams {
   p.set('line_items[0][price_data][currency]', 'usd');
   p.set('line_items[0][price_data][unit_amount]', String(i.monthlyCents));
   p.set('line_items[0][price_data][recurring][interval]', 'month');
-  p.set('line_items[0][price_data][product_data][name]', `Revenue Rescue - monthly (${i.orgName})`);
+  p.set('line_items[0][price_data][product_data][name]', `Stillwarm - monthly (${i.orgName})`);
   if (i.setupCents > 0) {
     p.set('line_items[1][quantity]', '1');
     p.set('line_items[1][price_data][currency]', 'usd');

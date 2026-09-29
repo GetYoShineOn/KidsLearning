@@ -11,3 +11,4 @@
 10. **Compliance defaults**: strictest-state quiet hours 8am-8pm, opt-out honored, one text-back per missed call, marketing reactivation requires recorded consent, AI disclosure + STOP in every message.
 11. Placed in `revenue-rescue-ai/` subfolder to leave the existing kids' app untouched.
 12. **$200/month budget**; SMS is the only metered cost, so it has hard caps (per-org daily/monthly, global monthly) that block rather than overspend. No LLM in the hot path.
+13. **Name: Stillwarm** (was Revenue Rescue). Chosen from 20 screened candidates; 3 survived (Stillwarm, Jobback, Leadmend). stillwarm.com was listed for sale (~$3.8k) per search. Screening was web-search only, so trademark/registrar checks remain open.
