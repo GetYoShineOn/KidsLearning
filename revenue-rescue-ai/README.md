@@ -9,7 +9,7 @@ Beachhead (from research): **residential HVAC**, then plumbing. First workflow: 
 ```
 cd revenue-rescue-ai && npm install
 cp .env.example .env.local   # set SESSION_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD
-npm test                     # 32 tests, embedded Postgres (PGlite), no services needed
+npm test                     # 36 tests, embedded Postgres (PGlite), no services needed
 npm run dev                  # http://localhost:3000  (public audit), /login -> /admin or /app
 node scripts/financial-model.mjs 3000 > docs/FINANCIAL_MODEL.md
 ```
@@ -22,11 +22,11 @@ node scripts/financial-model.mjs 3000 > docs/FINANCIAL_MODEL.md
 | SMS (Twilio) | IMPLEMENTED, **NOT verified live** (needs credentials + A2P 10DLC). Default provider is SIMULATED |
 | Twilio inbound/voice webhook | IMPLEMENTED with signature check, **NOT verified live** |
 | Stripe webhook (`invoice.paid`) | IMPLEMENTED with signature check, tested with synthetic events, **NOT verified live** |
-| Stripe checkout/subscriptions creation | NOT IMPLEMENTED (operator records payments manually for the first customers) |
+| Stripe Checkout link + subscription lifecycle webhooks | IMPLEMENTED (inline prices, no dashboard setup), tested with mock Stripe, **NOT verified live** |
 | LLM (Anthropic) conversation/qualification | NOT IMPLEMENTED; intent capture is deterministic rules on purpose (see DECISION_LOG) |
 | Calendar booking | NOT IMPLEMENTED (workflow creates an internal appointment or asks staff to confirm) |
 | CRM write-back (Housecall Pro/Jobber/ServiceTitan) | NOT IMPLEMENTED |
 | Email sending | NOT IMPLEMENTED by design: outreach is drafted, human approves and sends |
 | Outbound voice / AI calling | NOT IMPLEMENTED |
 
-Docs: `docs/ARCHITECTURE.md`, `ENVIRONMENT.md`, `SECURITY.md`, `DECISION_LOG.md`, `TESTING.md`, `FIRST_CUSTOMER_PLAYBOOK.md`, `FINANCIAL_MODEL.md`, `STATUS.md`, `research/`.
+Docs: `docs/DEPLOY.md`, `docs/ARCHITECTURE.md`, `ENVIRONMENT.md`, `SECURITY.md`, `DECISION_LOG.md`, `TESTING.md`, `FIRST_CUSTOMER_PLAYBOOK.md`, `FINANCIAL_MODEL.md`, `STATUS.md`, `research/`.

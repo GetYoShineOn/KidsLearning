@@ -10,5 +10,7 @@ export async function POST(req: Request) {
   if (raw.length > 500_000 || !verifyStripeSignature(raw, req.headers.get('stripe-signature'), secret)) return NextResponse.json({ error: 'bad signature' }, { status: 400 });
   let evt; try { evt = JSON.parse(raw); } catch { return NextResponse.json({ error: 'bad json' }, { status: 400 }); }
   if (typeof evt?.id !== 'string' || typeof evt?.type !== 'string') return NextResponse.json({ error: 'bad event' }, { status: 400 });
-  return NextResponse.json(await handleStripeEvent(await getDb(), evt));
+  const r = await handleStripeEvent(await getDb(), evt);
+  // 'unresolved' (e.g. invoice before checkout completed): non-2xx so Stripe retries later.
+  return NextResponse.json(r, { status: r.status === 'unresolved' ? 500 : 200 });
 }

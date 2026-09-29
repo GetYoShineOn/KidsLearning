@@ -3,12 +3,13 @@ import { getDb } from '@/lib/db';
 import { adminMetrics } from '@/lib/metrics';
 import { usdCents } from '@/lib/format';
 import { INDUSTRY_KEYS, VERTICALS } from '@/lib/audit/verticals';
-import { addProspect, approve, auditProspect, draftOutreach, recordPayment, seedDemo, sent, setStage, startPilot } from './actions';
+import { createPaymentLink, addProspect, approve, auditProspect, draftOutreach, recordPayment, seedDemo, sent, setStage, startPilot } from './actions';
 import { signOut } from '../app/actions';
 
 export const dynamic = 'force-dynamic';
 
-export default async function Admin() {
+export default async function Admin({ searchParams }: { searchParams: Promise<{ link?: string }> }) {
+  const { link } = await searchParams;
   await requireAdmin();
   const db = await getDb();
   const hw = process.env.HARDWARE_COST_USD ? Math.round(Number(process.env.HARDWARE_COST_USD) * 100) : null;
@@ -73,7 +74,9 @@ export default async function Admin() {
         {d.status === 'draft' ? <form action={approve}><input type="hidden" name="id" value={d.id} /><button className="btn small">Approve</button></form> : <form action={sent}><input type="hidden" name="id" value={d.id} /><button className="btn small">I sent this</button></form>}</div>)}
 
       <h2>Customers / pilots</h2>
+      {link && /^https:\/\/checkout\.stripe\.com\//.test(link) && <div className="card"><b>Payment link (send it yourself):</b><p className="small" style={{ wordBreak: 'break-all' }}>{link}</p></div>}
       <div className="card scroll"><table><tbody>{orgs.map(o => <tr key={o.id}><td>{o.name}{o.is_simulated && <span className="tag SIMULATED">SIM</span>}{o.is_simulated && <div className="small muted">{o.email} / demo-password-12345</div>}</td><td>{o.status}</td><td>
+        {!o.is_simulated && process.env.STRIPE_SECRET_KEY && <details><summary className="small">Payment link</summary><form action={createPaymentLink}><input type="hidden" name="org" value={o.id} /><input name="monthly" inputMode="decimal" placeholder="$/month" defaultValue="599" required /><input name="setup" inputMode="decimal" placeholder="$ setup" defaultValue="497" required /><button className="btn small">Create link</button></form></details>}
         {!o.is_simulated && <details><summary className="small">Record payment received</summary><form action={recordPayment}><input type="hidden" name="org" value={o.id} /><input name="dollars" inputMode="decimal" placeholder="$ amount" required /><input name="ref" placeholder="invoice / reference" required /><button className="btn small">Record</button></form></details>}</td></tr>)}</tbody></table>
         <form action={seedDemo} style={{ marginTop: 10 }}><button className="btn small ghost">Create SIMULATED demo tenant</button></form></div>
       <form action={signOut}><button className="btn ghost small">Sign out</button></form>

@@ -8,6 +8,8 @@ import { runAudit } from '@/lib/audit/run';
 import { INDUSTRY_KEYS } from '@/lib/audit/verticals';
 import { approveOutreach, draftEmail, markSent } from '@/lib/outreach';
 import { seedDemoOrg } from '@/lib/demo';
+import { redirect } from 'next/navigation';
+import { createCheckoutSession } from '@/lib/stripe';
 
 const id = z.string().uuid();
 const str = (fd: FormData, k: string) => String(fd.get(k) ?? '').trim();
@@ -97,3 +99,17 @@ export async function seedDemo() {
   // Demo tenants use a publicly documented password, so they are off in production unless explicitly enabled.
   if (process.env.NODE_ENV === 'production' && process.env.ALLOW_DEMO !== '1') return;
   await seedDemoOrg(await getDb()); revalidatePath('/admin'); }
+
+/** Generates a Stripe Checkout link for the operator to send to the customer. Nothing is emailed automatically. */
+export async function createPaymentLink(fd: FormData) {
+  const s = await requireAdmin(); const db = await getDb();
+  const d = z.object({ org: id, monthly: z.coerce.number().min(1).max(10000), setup: z.coerce.number().min(0).max(10000) })
+    .parse({ org: str(fd, 'org'), monthly: str(fd, 'monthly'), setup: str(fd, 'setup') });
+  const org = (await db.query<{ name: string; is_simulated: boolean; email: string | null }>(
+    `select o.name, o.is_simulated, (select email from users where org_id=o.id limit 1) email from organizations o where o.id=$1`, [d.org]))[0];
+  if (!org || org.is_simulated) return;
+  const { url } = await createCheckoutSession({ orgId: d.org, orgName: org.name, monthlyCents: Math.round(d.monthly * 100), setupCents: Math.round(d.setup * 100),
+    baseUrl: process.env.PUBLIC_BASE_URL ?? 'http://localhost:3000', email: org.email ?? undefined });
+  await auditLog(db, d.org, `user:${s.uid}`, 'payment_link_created', 'organization', d.org, { monthly: d.monthly, setup: d.setup });
+  redirect(`/admin?link=${encodeURIComponent(url)}`);
+}

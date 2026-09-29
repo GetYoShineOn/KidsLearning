@@ -48,6 +48,7 @@ export function getDb(): Promise<Db> {
   if (!g.__rrDb) {
     g.__rrDb = (async () => {
       const url = process.env.DATABASE_URL;
+      if (!url && process.env.NODE_ENV === 'production' && process.env.ALLOW_EMBEDDED_DB !== '1') throw new Error('DATABASE_URL is required in production (embedded PGlite is dev-only and loses data on redeploy)');
       const db = url ? await makePg(url) : await makePglite(process.env.PGLITE_DIR ?? '.data/pglite');
       await db.exec(SCHEMA_SQL);
       return db;
