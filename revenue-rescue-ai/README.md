@@ -9,7 +9,7 @@ Beachhead (from research): **residential HVAC**, then plumbing. First workflow: 
 ```
 cd revenue-rescue-ai && npm install
 cp .env.example .env.local   # set SESSION_SECRET, ADMIN_EMAIL, ADMIN_PASSWORD
-npm test                     # 30 tests, embedded Postgres (PGlite), no services needed
+npm test                     # 32 tests, embedded Postgres (PGlite), no services needed
 npm run dev                  # http://localhost:3000  (public audit), /login -> /admin or /app
 node scripts/financial-model.mjs 3000 > docs/FINANCIAL_MODEL.md
 ```

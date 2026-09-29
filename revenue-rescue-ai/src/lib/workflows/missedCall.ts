@@ -2,9 +2,10 @@ import type { Db } from '../db';
 import { auditLog } from '../security';
 import { canSendSms, STOP_WORDS, withRequiredFooter } from '../compliance';
 import { normalizePhone, type SmsProvider } from '../sms';
+import { smsCapReason, type SmsCaps } from '../budget';
 
 interface Biz { id: string; org_id: string; name: string; timezone: string; auto_book: boolean }
-interface OrgCtx { db: Db; orgId: string; sms: SmsProvider; now?: Date }
+interface OrgCtx { db: Db; orgId: string; sms: SmsProvider; now?: Date; caps?: SmsCaps }
 
 async function business(db: Db, orgId: string): Promise<Biz> {
   const b = (await db.query<Biz>(`select id, org_id, name, timezone, auto_book from businesses where org_id = $1 order by created_at limit 1`, [orgId]))[0];
@@ -30,6 +31,8 @@ async function sendOut(ctx: OrgCtx, biz: Biz, leadId: string, contact: { sms_con
   const gate = canSendSms(contact, purpose, now, biz.timezone);
   const body = withRequiredFooter(text, biz.name);
   if (!gate.ok) { await record(ctx.db, ctx.orgId, leadId, 'outbound', body, 'BLOCKED', gate.reason); return false; }
+  const capped = await smsCapReason(ctx.db, ctx.orgId, ctx.sms.mode, body, ctx.caps);
+  if (capped) { await record(ctx.db, ctx.orgId, leadId, 'outbound', body, 'BLOCKED', capped); await auditLog(ctx.db, ctx.orgId, 'budget', 'sms_cap_hit', 'lead', leadId, { reason: capped }); return false; }
   await ctx.sms.send(to, body);
   await record(ctx.db, ctx.orgId, leadId, 'outbound', body, ctx.sms.mode);
   return true;

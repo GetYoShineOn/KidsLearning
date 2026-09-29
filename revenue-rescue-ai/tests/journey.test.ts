@@ -156,3 +156,32 @@ describe('estimate credibility', () => {
     expect(withData.confidence).toBe('LOW'); // site unreadable caps confidence
   });
 });
+
+describe('sms spend caps', () => {
+  const realSms = { mode: 'REAL' as const, sent: [] as string[], async send(_t: string, b: string) { this.sent.push(b); return { id: 'x' }; } };
+  it('blocks real sends over the daily cap, but never caps simulated sends', async () => {
+    const { orgId } = await seedOrg(db, 'Capped');
+    realSms.sent.length = 0;
+    const ctx = { db, orgId, sms: realSms, now: DAYTIME, caps: { orgDaily: 2, orgMonthly: 100, globalMonthly: 100 } };
+    const a = await handleMissedCall(ctx, '2145550701');            // 1 segment-ish message
+    expect(a.sent).toBe(true);
+    await handleInboundSms(ctx, '2145550701', 'furnace out');        // reply -> 2nd real message
+    const b = await handleMissedCall(ctx, '2145550702');             // would exceed cap
+    expect(b.sent).toBe(false);
+    const blocked = await db.query<{ blocked_reason: string }>(`select blocked_reason from messages where org_id=$1 and delivery_mode='BLOCKED'`, [orgId]);
+    expect(blocked[0].blocked_reason).toMatch(/cap/i);
+    const sim = { db, orgId, sms: new SimulatedSms(), now: DAYTIME, caps: { orgDaily: 0, orgMonthly: 0, globalMonthly: 0 } };
+    expect((await handleMissedCall(sim, '2145550703')).sent).toBe(true);
+  });
+  it('enforces the global monthly budget across orgs', async () => {
+    const a = await seedOrg(db, 'GlobA'), b = await seedOrg(db, 'GlobB');
+    realSms.sent.length = 0;
+    const caps = { orgDaily: 50, orgMonthly: 50, globalMonthly: 5 }; // each footer-bearing text is 2 segments: 2 sends fit (4), a 3rd (6) does not
+    const mk = (orgId: string) => ({ db, orgId, sms: realSms, now: DAYTIME, caps });
+    expect((await handleMissedCall(mk(a.orgId), '2145550801')).sent).toBe(true);
+    expect((await handleMissedCall(mk(b.orgId), '2145550802')).sent).toBe(true);
+    expect((await handleMissedCall(mk(b.orgId), '2145550803')).sent).toBe(false);
+    expect((await handleMissedCall(mk(a.orgId), '2145550804')).sent).toBe(false);
+    expect(realSms.sent).toHaveLength(2);
+  });
+});
