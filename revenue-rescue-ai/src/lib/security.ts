@@ -91,3 +91,12 @@ export function isSafePublicUrl(raw: string): URL | null {
   }
   return u;
 }
+
+/** Twilio request validation: base64(HMAC-SHA1(authToken, url + sorted(key+value)...)). */
+export function verifyTwilioSignature(authToken: string, url: string, params: Record<string, string>, header: string | null): boolean {
+  if (!authToken || !header) return false;
+  const data = url + Object.keys(params).sort().map(k => k + params[k]).join('');
+  const expected = createHmac('sha1', authToken).update(data).digest('base64');
+  const a = Buffer.from(header), b = Buffer.from(expected);
+  return a.length === b.length && timingSafeEqual(a, b);
+}

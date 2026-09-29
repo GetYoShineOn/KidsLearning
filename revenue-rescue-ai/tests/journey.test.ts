@@ -143,3 +143,16 @@ describe('payments & admin metrics', () => {
     expect(m.firstRealPaymentAt).not.toBeNull();
   });
 });
+
+describe('estimate credibility', () => {
+  it('produces a sane range for a typical HVAC shop (no absurd spread)', async () => {
+    const { estimateOpportunity } = await import('@/lib/audit/estimate');
+    const { failedSignals } = await import('@/lib/audit/analyzer');
+    const r = estimateOpportunity({ businessName: 'X', website: 'x.com', industry: 'hvac' }, failedSignals('https://x.com', 'skip'));
+    expect(r.totalHighMonthly / r.totalLowMonthly).toBeLessThanOrEqual(6);
+    expect(r.totalHighMonthly).toBeLessThan(15000);
+    expect(r.confidence).toBe('LOW');
+    const withData = estimateOpportunity({ businessName: 'X', website: 'x.com', industry: 'hvac', monthlyLeads: 100, avgJobValue: 600 }, failedSignals('https://x.com', 'skip'));
+    expect(withData.confidence).toBe('LOW'); // site unreadable caps confidence
+  });
+});

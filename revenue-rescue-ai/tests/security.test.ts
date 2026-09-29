@@ -68,3 +68,14 @@ describe('input validation & rate limit', () => {
     expect(await rateLimit(db, 'k', 2, 60, new Date(t0.getTime() + 61_000))).toBe(true);
   });
 });
+
+import { verifyTwilioSignature } from '@/lib/security';
+describe('twilio signature', () => {
+  it('validates', () => {
+    const tok = 'tok', url = 'https://x.test/api/webhooks/twilio', p = { From: '+1214', Body: 'hi' };
+    const sig = createHmac('sha1', tok).update(url + 'BodyhiFrom+1214').digest('base64');
+    expect(verifyTwilioSignature(tok, url, p, sig)).toBe(true);
+    expect(verifyTwilioSignature(tok, url, { ...p, Body: 'x' }, sig)).toBe(false);
+    expect(verifyTwilioSignature(tok, url, p, null)).toBe(false);
+  });
+});

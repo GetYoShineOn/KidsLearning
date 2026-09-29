@@ -42,7 +42,6 @@ export interface AuditResult {
 }
 
 const r50 = (n: number) => Math.round(n / 50) * 50;
-const r = (n: number) => Math.max(0, Math.round(n));
 
 export function buildFindings(sig: SiteSignals, input: AuditInput): Finding[] {
   const f: Finding[] = [];
@@ -77,61 +76,51 @@ export function buildFindings(sig: SiteSignals, input: AuditInput): Finding[] {
   return f;
 }
 
+const gm = (a: number, b: number) => Math.sqrt(a * b);
+/** Uncertainty band applied around the central estimate. Compounding every low/high assumption yields absurd ranges. */
+export const BAND: [number, number] = [0.4, 2.2];
+
 export function estimateOpportunity(input: AuditInput, sig: SiteSignals): AuditResult {
   const v = verticalFor(input.industry);
   const findings = buildFindings(sig, input);
   const has = (id: string) => findings.some(x => x.id === id);
 
-  const leadsLo = input.monthlyLeads ?? v.monthlyLeads[0];
-  const leadsHi = input.monthlyLeads ?? v.monthlyLeads[1];
-  const jobLo = input.avgJobValue ?? v.jobValue[0];
-  const jobHi = input.avgJobValue ?? v.jobValue[1];
-  const closeLo = v.closeRate[0], closeHi = v.closeRate[1];
+  // Central values: what the owner told us, else the geometric midpoint of the vertical assumption range.
+  const leads = input.monthlyLeads ?? gm(...v.monthlyLeads);
+  const job = input.avgJobValue ?? gm(...v.jobValue);
+  const close = gm(...v.closeRate);
 
-  // Site friction nudges assumed rates upward (INFERRED). Kept small and bounded.
+  // Site friction nudges assumed rates upward (INFERRED). Small and bounded.
   const phoneFriction = (has('no_tap_to_call') ? 0.03 : 0) + (has('no_text_channel') ? 0.03 : 0) + (has('no_247_claim') ? 0.04 : 0);
   const webFriction = (has('no_form') ? 0.05 : 0) + (has('long_form') ? 0.04 : 0) + (has('no_booking') ? 0.03 : 0);
 
-  const callShare = 0.6, webShare = 0.4;
-  const missedLo = 0.15 + phoneFriction / 2, missedHi = 0.4 + phoneFriction;   // share of inbound calls unanswered
-  const textBackLo = 0.1, textBackHi = 0.25;                                   // share of missed callers who re-engage by text
-  const missedCall: LeakEstimate = {
-    leak: 'missed_call', label: 'Missed-call recovery',
-    lowMonthly: r50(leadsLo * callShare * missedLo * textBackLo * closeLo * jobLo),
-    highMonthly: r50(leadsHi * callShare * missedHi * textBackHi * closeHi * jobHi),
-    assumptions: [
-      `${input.monthlyLeads ? 'You told us' : 'We assume'} ${leadsLo === leadsHi ? leadsLo : `${leadsLo}-${leadsHi}`} inbound leads/month; ~${callShare * 100}% by phone`,
-      `${Math.round(missedLo * 100)}-${Math.round(missedHi * 100)}% of calls assumed unanswered (industry assumption, not measured)`,
-      `${textBackLo * 100}-${textBackHi * 100}% of missed callers assumed to re-engage via a fast text`,
-      `${Math.round(closeLo * 100)}-${Math.round(closeHi * 100)}% assumed to become jobs; avg job $${jobLo === jobHi ? jobLo : `${jobLo}-${jobHi}`}`,
-    ],
-  };
-  const slowLo = 0.2 + webFriction / 2, slowHi = 0.45 + webFriction;             // share of web leads answered too slowly / never
-  const webRecLo = 0.08, webRecHi = 0.2;
-  const webLead: LeakEstimate = {
-    leak: 'web_lead', label: 'Web-lead speed-to-response',
-    lowMonthly: r50(leadsLo * webShare * slowLo * webRecLo * closeLo * jobLo),
-    highMonthly: r50(leadsHi * webShare * slowHi * webRecHi * closeHi * jobHi),
-    assumptions: [
-      `~${webShare * 100}% of leads assumed to arrive via web forms`,
-      `${Math.round(slowLo * 100)}-${Math.round(slowHi * 100)}% assumed answered too slowly or never (assumption)`,
-      `${webRecLo * 100}-${webRecHi * 100}% of those assumed recoverable with an instant reply`,
-    ],
-  };
-  const estShare = 0.35;
-  const estimate: LeakEstimate = {
-    leak: 'estimate_followup', label: 'Estimate follow-up',
-    lowMonthly: r50(leadsLo * estShare * 0.2 * 0.06 * jobLo),
-    highMonthly: r50(leadsHi * estShare * 0.45 * 0.15 * jobHi),
-    assumptions: [
-      `~${estShare * 100}% of leads assumed to reach an estimate`,
-      '20-45% of estimates assumed to get no structured follow-up (INFERRED, not observed)',
-      '6-15% of those assumed winnable with polite, timed follow-up',
-    ],
-  };
-  const leaks = [missedCall, webLead, estimate];
-  const totalLow = leaks.reduce((s, l) => s + l.lowMonthly, 0);
-  const totalHigh = leaks.reduce((s, l) => s + l.highMonthly, 0);
+  const callShare = 0.6, webShare = 0.4, estShare = 0.35;
+  const missed = 0.27 + phoneFriction;   // share of inbound calls unanswered (industry base ~27%, see docs/research)
+  const textBack = 0.15;                 // share of missed callers who re-engage via a fast text (assumption)
+  const slow = 0.3 + webFriction;        // share of web leads answered too slowly or never (assumption)
+  const webRec = 0.12;                   // share of those recoverable with an instant reply (assumption)
+  const noFollow = 0.3, estRec = 0.1;    // estimates with no structured follow-up / share winnable (assumption)
+
+  const band = (c: number): [number, number] => [r50(c * BAND[0]), r50(c * BAND[1])];
+  const jobTxt = input.avgJobValue ? `$${input.avgJobValue} (you told us)` : `about $${Math.round(job)} (industry assumption)`;
+  const leadTxt = input.monthlyLeads ? `${input.monthlyLeads} inbound leads/month (you told us)` : `about ${Math.round(leads)} inbound leads/month (industry assumption)`;
+  const bandTxt = `Range shown is the central estimate x${BAND[0]} to x${BAND[1]}, because every input above is uncertain.`;
+
+  const mcC = leads * callShare * missed * textBack * close * job;
+  const wlC = leads * webShare * slow * webRec * close * job;
+  const efC = leads * estShare * noFollow * estRec * job;
+  const [mcLo, mcHi] = band(mcC), [wlLo, wlHi] = band(wlC), [efLo, efHi] = band(efC);
+  const leaks: LeakEstimate[] = [
+    { leak: 'missed_call', label: 'Missed-call recovery', lowMonthly: mcLo, highMonthly: mcHi, assumptions: [
+      leadTxt, `~${callShare * 100}% of leads arrive by phone`, `${Math.round(missed * 100)}% of calls assumed unanswered (not measured; only your phone records can show this)`,
+      `${textBack * 100}% of missed callers assumed to re-engage after a fast text`, `${Math.round(close * 100)}% of engaged leads assumed to become jobs at ${jobTxt}`, bandTxt] },
+    { leak: 'web_lead', label: 'Web-lead speed-to-response', lowMonthly: wlLo, highMonthly: wlHi, assumptions: [
+      `~${webShare * 100}% of leads arrive via web forms`, `${Math.round(slow * 100)}% assumed answered too slowly or never`, `${webRec * 100}% of those assumed recoverable with an instant reply`, bandTxt] },
+    { leak: 'estimate_followup', label: 'Estimate follow-up', lowMonthly: efLo, highMonthly: efHi, assumptions: [
+      `~${estShare * 100}% of leads assumed to reach an estimate`, `${noFollow * 100}% of estimates assumed to get no structured follow-up (INFERRED, not observed)`, `${estRec * 100}% of those assumed winnable with timed follow-up`, bandTxt] },
+  ];
+  const totalLow = leaks.reduce((a, l) => a + l.lowMonthly, 0);
+  const totalHigh = leaks.reduce((a, l) => a + l.highMonthly, 0);
 
   const reasons: string[] = [];
   let confidence: Confidence = 'LOW';

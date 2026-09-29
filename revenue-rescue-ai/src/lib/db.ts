@@ -8,6 +8,7 @@ export interface Db {
 
 async function makePglite(dataDir?: string): Promise<Db> {
   const { PGlite } = await import('@electric-sql/pglite');
+  if (dataDir) (await import('node:fs')).mkdirSync(dataDir, { recursive: true });
   const pg = dataDir ? new PGlite(dataDir) : new PGlite();
   await pg.waitReady;
   return {

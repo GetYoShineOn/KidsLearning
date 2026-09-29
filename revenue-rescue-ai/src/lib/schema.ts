@@ -30,12 +30,14 @@ create table if not exists businesses (
   timezone text not null default 'America/Chicago',
   avg_job_value_cents integer,
   auto_book boolean not null default false,
+  inbound_number text unique,
   created_at timestamptz not null default now()
 );
 
 create table if not exists prospects (
   id uuid primary key default gen_random_uuid(),
   name text not null,
+  contact_email text,
   website text,
   phone text,
   industry text not null,

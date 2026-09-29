@@ -10,8 +10,8 @@ export interface VerticalModel {
 }
 
 export const VERTICALS: Record<string, VerticalModel> = {
-  hvac:        { label: 'HVAC',             jobValue: [450, 6500],  closeRate: [0.25, 0.5],  monthlyLeads: [60, 250], emergency: true },
-  plumbing:    { label: 'Plumbing',         jobValue: [300, 2500],  closeRate: [0.3, 0.55],  monthlyLeads: [60, 250], emergency: true },
+  hvac:        { label: 'HVAC',             jobValue: [400, 2500],  closeRate: [0.25, 0.5],  monthlyLeads: [40, 160], emergency: true },
+  plumbing:    { label: 'Plumbing',         jobValue: [300, 1500],  closeRate: [0.3, 0.55],  monthlyLeads: [40, 160], emergency: true },
   roofing:     { label: 'Roofing',          jobValue: [5000, 14000],closeRate: [0.1, 0.25],  monthlyLeads: [30, 120], emergency: false },
   electrical:  { label: 'Electrical',       jobValue: [250, 2500],  closeRate: [0.3, 0.5],   monthlyLeads: [40, 150], emergency: true },
   garage_door: { label: 'Garage doors',     jobValue: [250, 1500],  closeRate: [0.35, 0.6],  monthlyLeads: [40, 150], emergency: true },

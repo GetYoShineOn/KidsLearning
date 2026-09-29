@@ -50,7 +50,7 @@ export async function handleMissedCall(ctx: OrgCtx, callerPhoneRaw: string) {
     [ctx.orgId, contact.id, ctx.sms.mode === 'SIMULATED'], ))[0];
   const sent = await sendOut(ctx, biz, lead.id, contact, phone,
     `Sorry we missed your call! What do you need help with? A quick reply here lets us get you scheduled faster.`, 'missed_call_reply');
-  if (sent) await ctx.db.query(`update leads set status='contacted', first_response_at=$2 where id=$1 and org_id=$3`, [lead.id, (ctx.now ?? new Date()).toISOString(), ctx.orgId]);
+  if (sent) await ctx.db.query(`update leads set status='contacted', first_response_at=$2 where id=$1 and org_id=$3`, [lead.id, new Date().toISOString(), ctx.orgId]);
   await auditLog(ctx.db, ctx.orgId, 'workflow:missed_call', sent ? 'lead_created_text_sent' : 'lead_created_text_held', 'lead', lead.id);
   return { leadId: lead.id, deduped: false, sent };
 }
